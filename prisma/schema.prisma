@@ -1,0 +1,57 @@
+// お問い合わせフォームのデータベーススキーマ
+// 参照: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// お問い合わせのステータス（3段階）
+enum ContactStatus {
+  NEW /// 新規
+  IN_PROGRESS /// 対応中
+  RESOLVED /// 解決済み
+}
+
+/// エンドユーザーから送信されたお問い合わせ
+model Contact {
+  /// 主キー。URL に含まれるため連番ではなく cuid を使う
+  id String @id @default(cuid())
+
+  // --- フォームの入力値 ---
+  /// 名前
+  name String
+  /// メールアドレス
+  email String
+  /// 件名
+  subject String
+  /// 本文
+  body String
+
+  // --- 管理ページで扱う情報 ---
+  /// 対応状況。初期値は「新規」
+  status ContactStatus @default(NEW)
+  /// 管理者の対応メモ
+  adminNote String?
+  /// 「解決済み」にした日時。updatedAt は任意の更新で変わるため別に持つ
+  respondedAt DateTime?
+
+  // --- 送信元の情報（スパム対策・調査用） ---
+  /// 送信元 IP アドレス
+  ipAddress String?
+  /// 送信元 User-Agent
+  userAgent String?
+
+  // --- タイムスタンプ ---
+  /// 受信日時。一覧のソート基準
+  createdAt DateTime @default(now())
+  /// 最終更新日時
+  updatedAt DateTime @updatedAt
+
+  /// 管理ページのステータス絞り込み＋新着順ソート用
+  @@index([status, createdAt])
+}
